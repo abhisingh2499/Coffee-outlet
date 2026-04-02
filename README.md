@@ -1,7 +1,7 @@
 # ☕ Coffee Shop Sales Analysis — SQL Project
 
 A complete end-to-end SQL project analyzing coffee shop sales data across multiple Indian cities to support data-driven expansion decisions.
-
+📊 View Report → https://abhisingh2499.github.io/Coffee-outlet/Coffee_Shop_Analysis_Report.html
 ---
 
 ## 📌 Project Overview
