@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coffee Shop Sales Analysis Report</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f0eb; color: #2d2d2d; }
+
+  /* COVER PAGE */
+  .cover {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #3b1f0a 0%, #6b3a1f 50%, #a0522d 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 60px 40px; color: white; position: relative; overflow: hidden;
+  }
+  .cover::before {
+    content: '☕'; font-size: 300px; position: absolute; opacity: 0.05;
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+  }
+  .cover-badge {
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+    padding: 6px 20px; border-radius: 20px; font-size: 13px; letter-spacing: 2px;
+    text-transform: uppercase; margin-bottom: 30px;
+  }
+  .cover h1 { font-size: 52px; font-weight: 800; line-height: 1.1; margin-bottom: 16px; }
+  .cover h1 span { color: #f5c842; }
+  .cover-sub { font-size: 20px; opacity: 0.85; margin-bottom: 40px; }
+  .cover-divider { width: 60px; height: 3px; background: #f5c842; margin: 0 auto 40px; }
+  .cover-meta { display: flex; gap: 40px; justify-content: center; flex-wrap: wrap; }
+  .cover-meta-item { text-align: center; }
+  .cover-meta-item .num { font-size: 36px; font-weight: 800; color: #f5c842; }
+  .cover-meta-item .label { font-size: 12px; opacity: 0.7; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+
+  /* LAYOUT */
+  .container { max-width: 960px; margin: 0 auto; padding: 60px 24px; }
+  .section { margin-bottom: 60px; }
+  .section-title {
+    font-size: 13px; font-weight: 700; color: #a0522d; letter-spacing: 3px;
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+  .section-heading { font-size: 32px; font-weight: 800; color: #3b1f0a; margin-bottom: 24px; }
+  p { font-size: 16px; line-height: 1.8; color: #555; margin-bottom: 16px; }
+
+  /* SCHEMA CARD */
+  .schema-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+  .schema-card {
+    background: white; border-radius: 12px; padding: 24px;
+    border-top: 4px solid #a0522d; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .schema-card h3 { font-size: 15px; font-weight: 700; color: #3b1f0a; margin-bottom: 12px; }
+  .schema-card ul { list-style: none; }
+  .schema-card ul li { font-size: 13px; color: #777; padding: 3px 0; border-bottom: 1px dashed #eee; }
+  .schema-card ul li:last-child { border: none; }
+  .schema-card ul li span { color: #a0522d; font-weight: 600; font-size: 11px; margin-left: 4px; }
+
+  /* QUESTIONS */
+  .q-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media(max-width: 650px) { .q-grid { grid-template-columns: 1fr; } }
+  .q-card {
+    background: white; border-radius: 12px; padding: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06); position: relative; overflow: hidden;
+  }
+  .q-card::before {
+    content: attr(data-num); position: absolute; top: -10px; right: 12px;
+    font-size: 72px; font-weight: 900; color: #f5f0eb; z-index: 0; line-height: 1;
+  }
+  .q-card-content { position: relative; z-index: 1; }
+  .q-num { font-size: 11px; font-weight: 700; color: #a0522d; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
+  .q-card h3 { font-size: 15px; font-weight: 700; color: #3b1f0a; margin-bottom: 10px; line-height: 1.4; }
+  .q-card p { font-size: 13px; color: #888; margin: 0; line-height: 1.6; }
+  .q-tag {
+    display: inline-block; margin-top: 12px; font-size: 11px; font-weight: 600;
+    background: #f5f0eb; color: #a0522d; padding: 3px 10px; border-radius: 20px;
+  }
+
+  /* SQL BLOCK */
+  .sql-section { background: white; border-radius: 16px; padding: 32px; margin-bottom: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .sql-section h3 { font-size: 17px; font-weight: 700; color: #3b1f0a; margin-bottom: 6px; }
+  .sql-section .sql-desc { font-size: 14px; color: #888; margin-bottom: 16px; }
+  pre {
+    background: #1e1e2e; color: #cdd6f4; border-radius: 10px;
+    padding: 20px 24px; overflow-x: auto; font-size: 13px; line-height: 1.7;
+    font-family: 'Courier New', monospace;
+  }
+  .kw { color: #89b4fa; font-weight: 600; }
+  .fn { color: #a6e3a1; }
+  .cm { color: #6c7086; font-style: italic; }
+  .str { color: #f38ba8; }
+
+  /* INSIGHTS */
+  .insight-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+  .insight-card {
+    background: white; border-radius: 12px; padding: 28px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .insight-card .icon { font-size: 32px; margin-bottom: 14px; }
+  .insight-card h3 { font-size: 15px; font-weight: 700; color: #3b1f0a; margin-bottom: 8px; }
+  .insight-card p { font-size: 13px; color: #888; margin: 0; line-height: 1.6; }
+
+  /* RECOMMENDATIONS */
+  .rec-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+  @media(max-width: 650px) { .rec-grid { grid-template-columns: 1fr; } }
+  .rec-card {
+    border-radius: 16px; padding: 30px 24px; color: white; text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .rec-card.gold { background: linear-gradient(135deg, #b8860b, #daa520); }
+  .rec-card.silver { background: linear-gradient(135deg, #708090, #a9a9a9); }
+  .rec-card.bronze { background: linear-gradient(135deg, #8b4513, #a0522d); }
+  .rec-medal { font-size: 40px; margin-bottom: 10px; }
+  .rec-city { font-size: 24px; font-weight: 800; margin-bottom: 12px; }
+  .rec-card ul { list-style: none; text-align: left; }
+  .rec-card ul li { font-size: 13px; padding: 4px 0; opacity: 0.9; }
+
+  .no-rec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media(max-width: 500px) { .no-rec-grid { grid-template-columns: 1fr; } }
+  .no-rec-card {
+    background: white; border-radius: 12px; padding: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06); border-left: 4px solid #e74c3c;
+  }
+  .no-rec-card h3 { font-size: 16px; font-weight: 700; color: #3b1f0a; margin-bottom: 8px; }
+  .no-rec-card ul { list-style: none; }
+  .no-rec-card ul li { font-size: 13px; color: #888; padding: 3px 0; }
+  .no-rec-card ul li::before { content: '✗ '; color: #e74c3c; font-weight: 700; }
+
+  /* TECH STACK */
+  .tech-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+  .tech-pill {
+    background: white; border: 2px solid #e8ddd6; border-radius: 30px;
+    padding: 10px 20px; font-size: 14px; font-weight: 600; color: #3b1f0a;
+    display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  .tech-pill .icon { font-size: 18px; }
+
+  /* GITHUB SECTION */
+  .github-table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .github-table th { background: #3b1f0a; color: white; padding: 14px 20px; text-align: left; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
+  .github-table td { padding: 14px 20px; font-size: 14px; border-bottom: 1px solid #f0ebe6; color: #555; }
+  .github-table tr:last-child td { border: none; }
+  .github-table tr:hover td { background: #fdf8f5; }
+  .file-badge { font-family: monospace; background: #f5f0eb; color: #a0522d; padding: 2px 8px; border-radius: 4px; font-size: 13px; }
+
+  /* FOOTER */
+  footer {
+    background: #3b1f0a; color: rgba(255,255,255,0.6); text-align: center;
+    padding: 40px; font-size: 14px;
+  }
+  footer strong { color: #f5c842; }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-badge">SQL Data Analysis Project</div>
+  <h1>☕ Coffee Shop<br><span>Sales Analysis</span></h1>
+  <p class="cover-sub">Data-driven expansion strategy for Indian cities</p>
+  <div class="cover-divider"></div>
+  <div class="cover-meta">
+    <div class="cover-meta-item"><div class="num">4</div><div class="label">Tables</div></div>
+    <div class="cover-meta-item"><div class="num">10</div><div class="label">Business Questions</div></div>
+    <div class="cover-meta-item"><div class="num">3</div><div class="label">City Recommendations</div></div>
+    <div class="cover-meta-item"><div class="num">MySQL</div><div class="label">Database</div></div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- OVERVIEW -->
+  <div class="section">
+    <div class="section-title">01 — Overview</div>
+    <div class="section-heading">What This Project Is About</div>
+    <p>This project performs a comprehensive sales analysis for a coffee shop chain operating across multiple Indian cities. Using MySQL, it answers 10 business-critical questions to help leadership make data-driven decisions about where to open new outlets, which products to stock, and how efficiently each city operates.</p>
+    <p>The analysis covers market sizing, revenue performance, product popularity, customer behavior, cost vs. earnings comparison, and sales trends — ultimately producing a final city recommendation for expansion.</p>
+  </div>
+
+  <!-- SCHEMA -->
+  <div class="section">
+    <div class="section-title">02 — Database Schema</div>
+    <div class="section-heading">Tables & Relationships</div>
+    <div class="schema-grid">
+      <div class="schema-card">
+        <h3>🏙️ city</h3>
+        <ul>
+          <li>city_id <span>PK</span></li>
+          <li>city_name</li>
+          <li>population</li>
+          <li>estimated_rent</li>
+          <li>city_rank</li>
+        </ul>
+      </div>
+      <div class="schema-card">
+        <h3>👤 customers</h3>
+        <ul>
+          <li>customer_id <span>PK</span></li>
+          <li>customer_name</li>
+          <li>city_id <span>FK → city</span></li>
+        </ul>
+      </div>
+      <div class="schema-card">
+        <h3>☕ products</h3>
+        <ul>
+          <li>product_id <span>PK</span></li>
+          <li>product_name</li>
+          <li>price</li>
+        </ul>
+      </div>
+      <div class="schema-card">
+        <h3>💰 sales</h3>
+        <ul>
+          <li>sale_id <span>PK</span></li>
+          <li>sale_date</li>
+          <li>product_id <span>FK → products</span></li>
+          <li>customer_id <span>FK → customers</span></li>
+          <li>total</li>
+          <li>rating</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUESTIONS -->
+  <div class="section">
+    <div class="section-title">03 — Analysis</div>
+    <div class="section-heading">10 Business Questions</div>
+    <div class="q-grid">
+      <div class="q-card" data-num="1">
+        <div class="q-card-content">
+          <div class="q-num">Question 01</div>
+          <h3>Estimated Coffee Consumers Per City</h3>
+          <p>25% of city population is assumed to be potential coffee consumers. This drives market size estimation.</p>
+          <div class="q-tag">Market Sizing</div>
+        </div>
+      </div>
+      <div class="q-card" data-num="2">
+        <div class="q-card-content">
+          <div class="q-num">Question 02</div>
+          <h3>Revenue — Last Quarter of 2023</h3>
+          <p>Filters sales between Oct–Dec 2023 to measure recent performance and business momentum per city.</p>
+          <div class="q-tag">Time Filtering</div>
+        </div>
+      </div>
+      <div class="q-card" data-num="3">
+        <div class="q-card-content">
+          <div class="q-num">Question 03</div>
+          <h3>Units Sold Per Product</h3>
+          <p>Ranks all products by order volume to identify bestsellers and guide inventory planning.</p>
+          <div class="q-tag">Product Analysis</div>
+        </div>
+      </div>
+      <div class="q-card" data-num="4">
+        <div class="q-card-content">
+          <div class="q-num">Question 04</div>
+          <h3>Average Sales Per Customer Per City</h3>
+          <p>Reveals how much an average customer spends in each city — a key pricing insight.</p>
+          <div class="q-tag">Customer Spend</div>
+        </div>
+      </div>
+      <div class="q-card" data-num="5">
+        <div class="q-card-content">
+          <div class="q-num">Question 05</div>
+          <h3>Market Penetration by City</h3>
+          <p>Compares estimated coffee consumers (population-based) against actual unique customers to spot gaps.</p>
+          <div class="q-tag">Market Penetration</div>
+        </div>
+      </div>
+      <div class="q-card" data-num="6">
+        <div class="q-card-content">
+          <div class="q-num">Question 06</div>
+          <h3>Top 3 Products in Each City</h3>
+          <p>Uses DENSE_RANK() window function to surface the three best-selling products per city.</p>
+          <div class="q-tag">Window Functions</div>
+        </div>
+      </div>
+      <div class="q-card" data-num="7">
+        <div class="q-card-content">
+          <div class="q-num">Question 07</div>
+          <h3>Unique Customers Per City</h3>
+          <p>Counts distinct customers who have made at least one purchase — measures brand reach.</p>
+          <div class="q-tag">Customer Reach</div>
+        </div>
+      </div>
+      <div class="q-card" data-num="8">
+        <div class="q-card-content">
+          <div class="q-num">Question 08</div>
+          <h3>Sales vs Rent Per Customer</h3>
+          <p>Compares how much each customer earns vs. how much rent cost is attributed per customer city-wide.</p>
+          <div class="q-tag">Unit Economics</div>
+        </div>
+      </div>
+      <div class="q-card" data-num="9">
+        <div class="q-card-content">
+          <div class="q-num">Question 09</div>
+          <h3>Monthly Sales Growth Rate</h3>
+          <p>Uses LAG() to compare month-over-month revenue and compute growth rate as a percentage.</p>
+          <div class="q-tag">LAG() Function</div>
+        </div>
+      </div>
+      <div class="q-card" data-num="10">
+        <div class="q-card-content">
+          <div class="q-num">Question 10</div>
+          <h3>Top 3 Cities for Expansion</h3>
+          <p>Combines revenue, rent, customer count, and avg spend into a final city-level comparison for expansion.</p>
+          <div class="q-tag">Final Recommendation</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KEY SQL HIGHLIGHTS -->
+  <div class="section">
+    <div class="section-title">04 — SQL Highlights</div>
+    <div class="section-heading">Key Queries Explained</div>
+
+    <div class="sql-section">
+      <h3>Q6 — Top 3 Products Per City (Window Function)</h3>
+      <div class="sql-desc">Uses a CTE + DENSE_RANK() partitioned by city to find top-performing products.</div>
+      <pre><span class="kw">WITH</span> CTE <span class="kw">AS</span> (
+  <span class="kw">SELECT</span> city_name, product_name,
+         <span class="fn">COUNT</span>(sale_id) <span class="kw">AS</span> total_orders,
+         <span class="fn">DENSE_RANK</span>() <span class="kw">OVER</span>(
+           <span class="kw">PARTITION BY</span> city_name
+           <span class="kw">ORDER BY</span> <span class="fn">COUNT</span>(sale_id) <span class="kw">DESC</span>
+         ) <span class="kw">AS</span> RNK
+  <span class="kw">FROM</span> products
+  <span class="kw">INNER JOIN</span> sales <span class="kw">ON</span> sales.product_id = products.product_id
+  <span class="kw">INNER JOIN</span> customers <span class="kw">ON</span> customers.customer_id = sales.customer_id
+  <span class="kw">INNER JOIN</span> city <span class="kw">ON</span> city.city_id = customers.city_id
+  <span class="kw">GROUP BY</span> city_name, product_name
+)
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> CTE <span class="kw">WHERE</span> RNK &lt;= 3;</pre>
+    </div>
+
+    <div class="sql-section">
+      <h3>Q9 — Monthly Sales Growth Rate (LAG Function)</h3>
+      <div class="sql-desc">Two-CTE approach: first compute monthly revenue, then apply LAG() to get previous month for % change.</div>
+      <pre><span class="kw">WITH</span> monthly_sales <span class="kw">AS</span> (
+  <span class="kw">SELECT</span> city_name,
+         <span class="fn">YEAR</span>(sale_date) <span class="kw">AS</span> year_sale,
+         <span class="fn">MONTH</span>(sale_date) <span class="kw">AS</span> month_sale,
+         <span class="fn">SUM</span>(total) <span class="kw">AS</span> monthly_revenue
+  <span class="kw">FROM</span> sales
+  <span class="kw">INNER JOIN</span> customers <span class="kw">ON</span> sales.customer_id = customers.customer_id
+  <span class="kw">INNER JOIN</span> city <span class="kw">ON</span> city.city_id = customers.city_id
+  <span class="kw">GROUP BY</span> city_name, <span class="fn">YEAR</span>(sale_date), <span class="fn">MONTH</span>(sale_date)
+),
+previous_month <span class="kw">AS</span> (
+  <span class="kw">SELECT</span> *,
+         <span class="fn">LAG</span>(monthly_revenue) <span class="kw">OVER</span>
+           (<span class="kw">PARTITION BY</span> city_name <span class="kw">ORDER BY</span> year_sale, month_sale)
+           <span class="kw">AS</span> previous_month_sales
+  <span class="kw">FROM</span> monthly_sales
+)
+<span class="kw">SELECT</span> city_name, year_sale, month_sale,
+       <span class="fn">ROUND</span>(((monthly_revenue - previous_month_sales)
+         / previous_month_sales) * 100, 2) <span class="kw">AS</span> sales_growth_rate
+<span class="kw">FROM</span> previous_month;</pre>
+    </div>
+  </div>
+
+  <!-- BUSINESS INSIGHTS -->
+  <div class="section">
+    <div class="section-title">05 — Insights</div>
+    <div class="section-heading">Key Business Takeaways</div>
+    <div class="insight-grid">
+      <div class="insight-card">
+        <div class="icon">📊</div>
+        <h3>Market Sizing Matters</h3>
+        <p>Cities with large populations but low unique customer counts represent untapped markets — prioritize marketing there before opening new outlets.</p>
+      </div>
+      <div class="insight-card">
+        <div class="icon">💸</div>
+        <h3>Revenue ≠ Profitability</h3>
+        <p>High-revenue cities like Bangalore are offset by very high rent. Avg rent per customer is the real profitability indicator, not total revenue alone.</p>
+      </div>
+      <div class="insight-card">
+        <div class="icon">📈</div>
+        <h3>Growth Trend is Key</h3>
+        <p>A city with moderate revenue but consistent month-over-month growth is a better expansion bet than a city with high revenue but declining sales.</p>
+      </div>
+      <div class="insight-card">
+        <div class="icon">☕</div>
+        <h3>Product Mix by City</h3>
+        <p>Top 3 products vary by city. Stocking city-specific bestsellers instead of a uniform menu can significantly boost sales and reduce wastage.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECOMMENDATIONS -->
+  <div class="section">
+    <div class="section-title">06 — Final Recommendation</div>
+    <div class="section-heading">Where to Open Next?</div>
+
+    <div class="rec-grid">
+      <div class="rec-card gold">
+        <div class="rec-medal">🥇</div>
+        <div class="rec-city">Pune</div>
+        <ul>
+          <li>🔥 Highest total revenue</li>
+          <li>💰 Strong avg spend/customer</li>
+          <li>🏠 Moderate rent</li>
+          <li>📊 Solid customer base</li>
+        </ul>
+      </div>
+      <div class="rec-card silver">
+        <div class="rec-medal">🥈</div>
+        <div class="rec-city">Chennai</div>
+        <ul>
+          <li>💵 2nd highest revenue</li>
+          <li>📊 Good customer base</li>
+          <li>🏠 Manageable rent</li>
+          <li>⚖️ Balanced unit economics</li>
+        </ul>
+      </div>
+      <div class="rec-card bronze">
+        <div class="rec-medal">🥉</div>
+        <div class="rec-city">Jaipur</div>
+        <ul>
+          <li>👥 Highest customer count</li>
+          <li>💸 Lowest rent per customer</li>
+          <li>📈 Strong revenue vs cost</li>
+          <li>⚖️ Very efficient economics</li>
+        </ul>
+      </div>
+    </div>
+
+    <p style="margin-bottom:16px; font-weight:600; color:#3b1f0a;">Cities NOT recommended for immediate expansion:</p>
+    <div class="no-rec-grid">
+      <div class="no-rec-card">
+        <h3>❌ Bangalore</h3>
+        <ul>
+          <li>Rent is the highest of all cities</li>
+          <li>Avg rent per customer is extreme</li>
+          <li>Profit margin risk is very high</li>
+        </ul>
+      </div>
+      <div class="no-rec-card">
+        <h3>❌ Delhi</h3>
+        <ul>
+          <li>Large market but low spend per customer</li>
+          <li>Rent is relatively high</li>
+          <li>Revenue doesn't justify cost</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- TECH STACK -->
+  <div class="section">
+    <div class="section-title">07 — Tech Stack</div>
+    <div class="section-heading">Tools & Concepts Used</div>
+    <div class="tech-grid">
+      <div class="tech-pill"><span class="icon">🐬</span> MySQL 8.0</div>
+      <div class="tech-pill"><span class="icon">🔗</span> INNER JOINs</div>
+      <div class="tech-pill"><span class="icon">📦</span> CTEs (WITH clause)</div>
+      <div class="tech-pill"><span class="icon">🪟</span> Window Functions</div>
+      <div class="tech-pill"><span class="icon">⏮️</span> LAG() Function</div>
+      <div class="tech-pill"><span class="icon">🏅</span> DENSE_RANK()</div>
+      <div class="tech-pill"><span class="icon">📅</span> Date Filtering</div>
+      <div class="tech-pill"><span class="icon">🔢</span> Aggregations</div>
+      <div class="tech-pill"><span class="icon">🔑</span> Foreign Keys</div>
+      <div class="tech-pill"><span class="icon">📊</span> GROUP BY / ORDER BY</div>
+    </div>
+  </div>
+
+  <!-- GITHUB GUIDE -->
+  <div class="section">
+    <div class="section-title">08 — GitHub</div>
+    <div class="section-heading">Files to Upload on GitHub</div>
+    <p>Your repository should contain these 4 items:</p>
+    <table class="github-table">
+      <thead>
+        <tr><th>#</th><th>File / Folder</th><th>Why It's Needed</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td><span class="file-badge">coffee_store.sql</span></td><td>Main SQL file — schema + all 10 analysis queries.</td></tr>
+        <tr><td>2</td><td><span class="file-badge">data/</span></td><td>Folder with all 4 CSV files: city, customers, products, sales.</td></tr>
+        <tr><td>3</td><td><span class="file-badge">Coffee_Shop_Analysis_Report.html</span></td><td>This report — demonstrates your analysis and presentation skills.</td></tr>
+        <tr><td>4</td><td><span class="file-badge">README.md</span></td><td>Project documentation shown on your GitHub repo page.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<footer>
+  <p>☕ Coffee Shop Sales Analysis &nbsp;|&nbsp; SQL Project &nbsp;|&nbsp; Built with <strong>MySQL 8.0</strong></p>
+  <p style="margin-top:8px; font-size:12px;">Analysis covers market sizing, revenue trends, product popularity, and city-level unit economics</p>
+</footer>
+
+</body>
+</html>
